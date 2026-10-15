@@ -2,18 +2,10 @@
 
 import os
 
-from flask import Flask, jsonify
-
-from version import VERSION
+from app import create_app
 
 
-application = Flask(__name__)
-
-
-@application.route("/health", methods=["GET"])
-def health():
-    """Respuesta básica para comprobar que el proceso está disponible."""
-    return jsonify(status="ok", version=VERSION)
+application = create_app()
 
 
 if __name__ == "__main__":
