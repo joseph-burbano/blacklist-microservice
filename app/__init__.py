@@ -25,6 +25,9 @@ def create_app(test_config=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY=os.environ.get("JWT_SECRET_KEY"),
         JWT_ACCESS_TOKEN_EXPIRES=False,
+        # Sin esto, Flask-RESTful convierte los errores de JWT en 500 fuera de
+        # TESTING y nunca llegan a los manejadores 401 de Flask-JWT-Extended.
+        PROPAGATE_EXCEPTIONS=True,
     )
     if test_config:
         app.config.update(test_config)
@@ -37,9 +40,9 @@ def create_app(test_config=None):
     try:
         proxy_count = int(os.environ.get("TRUSTED_PROXY_COUNT", "0"))
     except ValueError as exc:
-        raise RuntimeError("TRUSTED_PROXY_COUNT debe ser 0 o 1") from exc
-    if proxy_count not in (0, 1):
-        raise RuntimeError("TRUSTED_PROXY_COUNT debe ser 0 o 1")
+        raise RuntimeError("TRUSTED_PROXY_COUNT debe ser 0, 1 o 2") from exc
+    if proxy_count not in (0, 1, 2):
+        raise RuntimeError("TRUSTED_PROXY_COUNT debe ser 0, 1 o 2")
     if proxy_count:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_count)
 

@@ -160,6 +160,62 @@ class BlacklistApiTest(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
+    def test_beanstalk_two_proxy_hops_keep_client_ip(self):
+        # En Beanstalk la petición pasa por el ALB y luego por nginx; nginx
+        # agrega la IP del ALB al final de X-Forwarded-For.
+        with patch.dict("os.environ", {"TRUSTED_PROXY_COUNT": "2"}):
+            proxy_app = create_app(
+                {"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                 "JWT_SECRET_KEY": "test-only-secret"}
+            )
+        with proxy_app.app_context():
+            db.create_all()
+            token = create_access_token(identity="test-client", expires_delta=False)
+            response = proxy_app.test_client().post(
+                "/blacklists",
+                json=self.valid,
+                headers={
+                    "Authorization": "Bearer {}".format(token),
+                    "X-Forwarded-For": "198.51.100.9, 172.31.13.128",
+                },
+                environ_base={"REMOTE_ADDR": "127.0.0.1"},
+            )
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(BlacklistEntry.query.one().source_ip, "198.51.100.9")
+            db.session.remove()
+            db.drop_all()
+
+    def test_invalid_proxy_count_is_rejected(self):
+        for value in ("3", "-1", "abc"):
+            with self.subTest(value=value):
+                with patch.dict("os.environ", {"TRUSTED_PROXY_COUNT": value}):
+                    with self.assertRaises(RuntimeError):
+                        create_app({"SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+                                    "JWT_SECRET_KEY": "test-only-secret"})
+
+
+class ProductionErrorHandlingTest(unittest.TestCase):
+    """Sin TESTING, Flask-RESTful no debe convertir los errores de JWT en 500."""
+
+    def setUp(self):
+        self.app = create_app(
+            {"SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+             "JWT_SECRET_KEY": "test-only-secret"}
+        )
+        self.client = self.app.test_client()
+
+    def test_missing_or_invalid_token_is_401(self):
+        for method, path in (("post", "/blacklists"),
+                             ("get", "/blacklists/a@example.com")):
+            for headers in ({}, {"Authorization": "Bearer invalid"}):
+                with self.subTest(method=method, headers=headers):
+                    response = getattr(self.client, method)(path, headers=headers)
+                    self.assertEqual(response.status_code, 401)
+                    self.assertEqual(
+                        response.get_json(),
+                        {"message": "Token de autorización requerido o inválido."},
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()
