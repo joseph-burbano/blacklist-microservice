@@ -17,7 +17,7 @@ equipo empaqueta y despliega cada versión manualmente.
 | Email | Se quitan espacios exteriores y se convierte a minúsculas tanto al registrar como al consultar. La unicidad es por email normalizado. |
 | Duplicado | Se rechaza con HTTP 409; el registro anterior no se modifica. |
 | Fecha/hora | Se almacena `created_at` en UTC. |
-| IP | Se guarda `source_ip`. En local se usa la IP de la conexión. Detrás de **un** balanceador de confianza, configurar `TRUSTED_PROXY_COUNT=1` para usar el último salto de `X-Forwarded-For`. |
+| IP | Se guarda `source_ip`. En local se usa la IP de la conexión. En Elastic Beanstalk la petición atraviesa **dos** proxies de confianza (el ALB y el nginx de cada instancia, que agrega la IP del ALB a `X-Forwarded-For`), por eso allí se configura `TRUSTED_PROXY_COUNT=2`. |
 | Esquema | `python manage.py init-db` se ejecuta explícitamente una vez contra la base antes de probar POST/GET. Los procesos WSGI no crean tablas. |
 | Health check | `GET /health` es público y devuelve la versión, sin consultar la base. |
 
@@ -27,7 +27,7 @@ equipo empaqueta y despliega cada versión manualmente.
 | --- | --- | --- |
 | `DATABASE_URL` | Sí | `postgresql://usuario:clave@host:5432/blacklist` |
 | `JWT_SECRET_KEY` | Sí | Secreto aleatorio compartido por todas las instancias; firma y valida el JWT. |
-| `TRUSTED_PROXY_COUNT` | No | `0` en local (por defecto); `1` si la petición llega a través de un solo balanceador de confianza. |
+| `TRUSTED_PROXY_COUNT` | No | `0` en local (por defecto); `1` detrás de un solo proxy de confianza; `2` en Elastic Beanstalk (ALB + nginx). |
 | `PORT` | No | Puerto del servidor local; `5000` por defecto. Beanstalk usa el objeto WSGI. |
 
 El valor de `JWT_SECRET_KEY`, el JWT emitido y la contraseña de PostgreSQL son
@@ -109,7 +109,7 @@ en la API. Los errores de validación detallan el campo afectado.
 
 1. Juan crea la base PostgreSQL en RDS y permite tráfico 5432 **solo** desde
    el grupo de seguridad de las instancias de Beanstalk. Configura
-   `DATABASE_URL`, `JWT_SECRET_KEY` y `TRUSTED_PROXY_COUNT=1` en las propiedades
+   `DATABASE_URL`, `JWT_SECRET_KEY` y `TRUSTED_PROXY_COUNT=2` en las propiedades
    del ambiente. La clave y la URL completa no se incluyen en capturas.
 2. Tras integrar un PR a `main`, crear el tag de versión sobre ese commit. Para
    obtener un ZIP con los archivos en la raíz: `git archive --format=zip -o
@@ -124,8 +124,8 @@ en la API. Los errores de validación detallan el campo afectado.
    futuros al esquema. No ejecutarlo simultáneamente en todas las instancias.
 4. Verificar desde Postman público: `/health`, POST y GET con token y sin token.
    Confirmar en RDS que el registro conserva la IP del cliente vista por el
-   balanceador y la fecha/hora UTC. Si la topología tiene más o menos de un
-   proxy de confianza, ajustar `TRUSTED_PROXY_COUNT` y volver a verificar la
+   balanceador y la fecha/hora UTC. Si la topología tiene un número distinto de
+   proxies de confianza, ajustar `TRUSTED_PROXY_COUNT` y volver a verificar la
    IP; un valor incorrecto permite guardar una IP suministrada por el cliente.
 5. Para las cuatro estrategias de despliegue, cambiar `VERSION` en
    `version.py` y preparar tags/ZIP distintos `v2` a `v5`, manteniendo la API
