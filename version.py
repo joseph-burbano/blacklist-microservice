@@ -1,3 +1,3 @@
 """Versión de la API."""
 
-VERSION = "v3"
+VERSION = "v4"
