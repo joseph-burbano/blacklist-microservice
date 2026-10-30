@@ -137,6 +137,22 @@ comprobar la integración real.
 
 ## Pruebas
 
+Para la Entrega 2, instalar dependencias de desarrollo y ejecutar la misma
+suite que usa AWS CodeBuild:
+
+```powershell
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest tests -v --junitxml=reports/junit.xml
+python scripts/package_artifact.py
+```
+
+El último comando genera `blacklist-deploy.zip` para despliegue manual; en
+CodeBuild solo se ejecuta si todas las pruebas pasan. El pipeline de esta
+entrega no despliega automáticamente. La suite usa SQLite en memoria y omite
+la prueba opcional de PostgreSQL si no existe `INTEGRATION_DATABASE_URL`.
+
+El comando original de `unittest` también sigue disponible:
+
 ```powershell
 python -m unittest discover -s tests -v
 ```
