@@ -8,27 +8,27 @@ equipo empaqueta y despliega cada versión manualmente.
 
 ## Contratos acordados para integrar el equipo
 
-| Decisión | Valor |
-| --- | --- |
-| Runtime | Python 3.11, Flask 1.1.4 y dependencias fijadas en `requirements.txt` |
-| Persistencia | PostgreSQL vía Flask SQLAlchemy; tabla `blacklist_entries` |
-| Autenticación | `Authorization: Bearer <JWT>` en POST y GET, validado por Flask JWT Extended. Es un JWT compartido, preemitido y sin vencimiento para esta entrega; no existe endpoint para emitirlo. |
-| Configuración del servidor | `DATABASE_URL` y `JWT_SECRET_KEY` obligatorias. El antiguo `API_TOKEN` propuesto en el plan del equipo **no se usa**. |
-| Email | Se quitan espacios exteriores y se convierte a minúsculas tanto al registrar como al consultar. La unicidad es por email normalizado. |
-| Duplicado | Se rechaza con HTTP 409; el registro anterior no se modifica. |
-| Fecha/hora | Se almacena `created_at` en UTC. |
-| IP | Se guarda `source_ip`. En local se usa la IP de la conexión. En Elastic Beanstalk la petición atraviesa **dos** proxies de confianza (el ALB y el nginx de cada instancia, que agrega la IP del ALB a `X-Forwarded-For`), por eso allí se configura `TRUSTED_PROXY_COUNT=2`. |
-| Esquema | `python manage.py init-db` se ejecuta explícitamente una vez contra la base antes de probar POST/GET. Los procesos WSGI no crean tablas. |
-| Health check | `GET /health` es público y devuelve la versión, sin consultar la base. |
+| Decisión                   | Valor                                                                                                                                                                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime                    | Python 3.11, Flask 1.1.4 y dependencias fijadas en `requirements.txt`                                                                                                                                                                                                        |
+| Persistencia               | PostgreSQL vía Flask SQLAlchemy; tabla `blacklist_entries`                                                                                                                                                                                                                   |
+| Autenticación              | `Authorization: Bearer <JWT>` en POST y GET, validado por Flask JWT Extended. Es un JWT compartido, preemitido y sin vencimiento para esta entrega; no existe endpoint para emitirlo.                                                                                        |
+| Configuración del servidor | `DATABASE_URL` y `JWT_SECRET_KEY` obligatorias. El antiguo `API_TOKEN` propuesto en el plan del equipo **no se usa**.                                                                                                                                                        |
+| Email                      | Se quitan espacios exteriores y se convierte a minúsculas tanto al registrar como al consultar. La unicidad es por email normalizado.                                                                                                                                        |
+| Duplicado                  | Se rechaza con HTTP 409; el registro anterior no se modifica.                                                                                                                                                                                                                |
+| Fecha/hora                 | Se almacena `created_at` en UTC.                                                                                                                                                                                                                                             |
+| IP                         | Se guarda `source_ip`. En local se usa la IP de la conexión. En Elastic Beanstalk la petición atraviesa **dos** proxies de confianza (el ALB y el nginx de cada instancia, que agrega la IP del ALB a `X-Forwarded-For`), por eso allí se configura `TRUSTED_PROXY_COUNT=2`. |
+| Esquema                    | `python manage.py init-db` se ejecuta explícitamente una vez contra la base antes de probar POST/GET. Los procesos WSGI no crean tablas.                                                                                                                                     |
+| Health check               | `GET /health` es público y devuelve la versión, sin consultar la base.                                                                                                                                                                                                       |
 
 ### Variables de entorno
 
-| Variable | Obligatoria | Ejemplo / función |
-| --- | --- | --- |
-| `DATABASE_URL` | Sí | `postgresql://usuario:clave@host:5432/blacklist` |
-| `JWT_SECRET_KEY` | Sí | Secreto aleatorio compartido por todas las instancias; firma y valida el JWT. |
-| `TRUSTED_PROXY_COUNT` | No | `0` en local (por defecto); `1` detrás de un solo proxy de confianza; `2` en Elastic Beanstalk (ALB + nginx). |
-| `PORT` | No | Puerto del servidor local; `5000` por defecto. Beanstalk usa el objeto WSGI. |
+| Variable              | Obligatoria | Ejemplo / función                                                                                             |
+| --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`        | Sí          | `postgresql://usuario:clave@host:5432/blacklist`                                                              |
+| `JWT_SECRET_KEY`      | Sí          | Secreto aleatorio compartido por todas las instancias; firma y valida el JWT.                                 |
+| `TRUSTED_PROXY_COUNT` | No          | `0` en local (por defecto); `1` detrás de un solo proxy de confianza; `2` en Elastic Beanstalk (ALB + nginx). |
+| `PORT`                | No          | Puerto del servidor local; `5000` por defecto. Beanstalk usa el objeto WSGI.                                  |
 
 El valor de `JWT_SECRET_KEY`, el JWT emitido y la contraseña de PostgreSQL son
 secretos. No se guardan en Git, capturas, Postman público ni en el PDF. Si la
@@ -79,15 +79,15 @@ debe documentar los siguientes casos contra local y la URL pública de AWS. La
 documentación publicada puede incluir ejemplos de respuesta, pero no el token
 real.
 
-| Caso | Método y ruta | HTTP | Respuesta JSON |
-| --- | --- | --- | --- |
-| Agregar | `POST /blacklists` | 201 | `{"message":"Email agregado a la lista negra.","email":"persona@example.com"}` |
-| Email duplicado | `POST /blacklists` | 409 | `{"message":"El email ya está en la lista negra."}` |
-| Datos inválidos | `POST /blacklists` o `GET /blacklists/<email>` | 400 | `{"message":"Datos inválidos.","errors":{"campo":["detalle"]}}` |
-| Token ausente, inválido o vencido | POST o GET | 401 | `{"message":"Token de autorización requerido o inválido."}` |
-| Encontrado | `GET /blacklists/persona@example.com` | 200 | `{"email":"persona@example.com","blacklisted":true,"blocked_reason":"Motivo"}` |
-| No encontrado | `GET /blacklists/otro@example.com` | 200 | `{"email":"otro@example.com","blacklisted":false,"blocked_reason":null}` |
-| Salud | `GET /health` | 200 | `{"status":"ok","version":"v1"}` |
+| Caso                              | Método y ruta                                  | HTTP | Respuesta JSON                                                                 |
+| --------------------------------- | ---------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
+| Agregar                           | `POST /blacklists`                             | 201  | `{"message":"Email agregado a la lista negra.","email":"persona@example.com"}` |
+| Email duplicado                   | `POST /blacklists`                             | 409  | `{"message":"El email ya está en la lista negra."}`                            |
+| Datos inválidos                   | `POST /blacklists` o `GET /blacklists/<email>` | 400  | `{"message":"Datos inválidos.","errors":{"campo":["detalle"]}}`                |
+| Token ausente, inválido o vencido | POST o GET                                     | 401  | `{"message":"Token de autorización requerido o inválido."}`                    |
+| Encontrado                        | `GET /blacklists/persona@example.com`          | 200  | `{"email":"persona@example.com","blacklisted":true,"blocked_reason":"Motivo"}` |
+| No encontrado                     | `GET /blacklists/otro@example.com`             | 200  | `{"email":"otro@example.com","blacklisted":false,"blocked_reason":null}`       |
+| Salud                             | `GET /health`                                  | 200  | `{"status":"ok","version":"v1"}`                                               |
 
 Ejemplo de solicitud POST:
 
@@ -113,7 +113,7 @@ en la API. Los errores de validación detallan el campo afectado.
    del ambiente. La clave y la URL completa no se incluyen en capturas.
 2. Tras integrar un PR a `main`, crear el tag de versión sobre ese commit. Para
    obtener un ZIP con los archivos en la raíz: `git archive --format=zip -o
-   blacklist-v1.zip v1`. Subirlo con **Upload and deploy**. No empaquetar la
+blacklist-v1.zip v1`. Subirlo con **Upload and deploy**. No empaquetar la
    carpeta `.venv` ni un directorio padre.
 3. La primera versión puede arrancar y responder `/health` antes de que exista
    la tabla. Desde **una sola sesión dentro de la VPC** con acceso a RDS (por
@@ -172,3 +172,18 @@ La prueba crea un email único y lo borra al terminar. Si no se define
 `INTEGRATION_DATABASE_URL`, se omite. Se verificó localmente con PostgreSQL 16;
 Juan y Joseph aún deben repetir POST y GET contra RDS en AWS y comprobar la IP
 real detrás del balanceador.
+
+## Integración continua (Entrega 2)
+
+Cada commit que llega a `main` dispara automáticamente el pipeline
+`blacklist-ci-pipeline` en AWS CodePipeline, sin intervención manual.
+
+| Etapa  | Servicio                             | Qué hace                                                                                         |
+| ------ | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Source | GitHub (conexión `github-blacklist`) | Detecta el push a `main` y descarga el código                                                    |
+| Build  | AWS CodeBuild (`blacklist-ci-build`) | Ejecuta `buildspec.yml`: instala dependencias, corre las pruebas y genera `blacklist-deploy.zip` |
+
+- El pipeline **no despliega**: solo compila, prueba y guarda el artefacto en S3.
+- Si una prueba falla, el build se detiene en la fase BUILD y no se genera artefacto.
+- El informe de pruebas queda en CodeBuild → Reports.
+- La rama principal de este repositorio se llama `main` (equivale a la `master` del enunciado).
