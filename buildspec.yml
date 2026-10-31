@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - python --version
+      - python -m pip install -r requirements.txt -r requirements-dev.txt
+  pre_build:
+    commands:
+      - echo "Commit $CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - python -c "from version import VERSION; print('API version:', VERSION)"
+  build:
+    commands:
+      - python -m pytest tests -v --junitxml=reports/junit.xml
+      - python scripts/package_artifact.py
+
+reports:
+  pruebas-unitarias:
+    files:
+      - junit.xml
+    base-directory: reports
+    file-format: JUNITXML
+
+artifacts:
+  files:
+    - blacklist-deploy.zip
+  discard-paths: yes
