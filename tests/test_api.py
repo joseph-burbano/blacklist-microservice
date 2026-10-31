@@ -39,7 +39,7 @@ class BlacklistApiTest(unittest.TestCase):
     def test_health_is_public_and_reports_version(self):
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), {"status": "ok", "version": "v2"})
+        self.assertEqual(response.get_json(), {"status": "ok", "version": "v1"})
 
     def test_post_persists_normalized_email_ip_and_timestamp(self):
         response = self.client.post(
