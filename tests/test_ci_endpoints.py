@@ -39,7 +39,7 @@ class HealthEndpointTest(ApiEndpointCase):
     def test_health_is_public_and_reports_version(self):
         """GET /health responde 200 y versión sin autenticación."""
         response = self.client.get("/health")
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), {"status": "ok", "version": VERSION})
 
 
