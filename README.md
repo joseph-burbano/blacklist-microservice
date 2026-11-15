@@ -187,3 +187,44 @@ Cada commit que llega a `main` dispara automáticamente el pipeline
 - Si una prueba falla, el build se detiene en la fase BUILD y no se genera artefacto.
 - El informe de pruebas queda en CodeBuild → Reports.
 - La rama principal de este repositorio se llama `main` (equivale a la `master` del enunciado).
+
+## Entrega 3: contenedor y artefactos para Fargate
+
+El frente de Joseph está descrito paso a paso en `plan_implementacion_joseph_entrega_3.md`.
+El bloque anterior documenta el comportamiento histórico de la Entrega 2; el
+`buildspec.yml` actual está preparado para ejecutar las pruebas y después
+construir y publicar una imagen en ECR. Ya no genera el ZIP de Beanstalk en CI.
+
+La imagen usa Python 3.11 y Gunicorn, expone el puerto 5000 y necesita
+`DATABASE_URL` y `JWT_SECRET_KEY` al arrancar. Con Docker Desktop activo:
+
+```powershell
+docker build -t blacklist:local .
+docker run --rm -p 5000:5000 -e DATABASE_URL='postgresql://usuario:clave@host:5432/blacklist' -e JWT_SECRET_KEY='secreto-local' blacklist:local
+curl.exe http://localhost:5000/health
+```
+
+Para probar POST y GET se requiere una base PostgreSQL preparada y un JWT
+emitido con la misma clave. En Fargate, `DATABASE_URL` y `JWT_SECRET_KEY` se
+inyectan desde Secrets Manager mediante el rol de ejecución ECS; no se guardan
+en el repositorio ni en la imagen. `TRUSTED_PROXY_COUNT` se configura según los
+proxies reales; el generador de la tarea propone `1` para ALB directo.
+
+CodeBuild necesita Docker habilitado en modo privilegiado, acceso de push a ECR
+y estas variables de entorno:
+
+| Variable | Uso |
+| --- | --- |
+| `IMAGE_REPOSITORY_URI` | URI completa del repositorio ECR, sin tag |
+| `ECS_TASK_EXECUTION_ROLE_ARN` | Rol de ejecución de la tarea; debe poder leer ECR, logs y secretos |
+| `DATABASE_URL_SECRET_ARN` | ARN del secreto con la URL de PostgreSQL |
+| `JWT_SECRET_KEY_SECRET_ARN` | ARN del secreto con la clave JWT |
+| `ECS_LOG_GROUP` | Grupo CloudWatch Logs creado para la tarea |
+| `ECS_TASK_ROLE_ARN` | Opcional, si la app necesita llamar a AWS |
+| `TRUSTED_PROXY_COUNT` | Opcional; por defecto `1` en la tarea generada |
+
+`AWS_DEFAULT_REGION` y `CODEBUILD_RESOLVED_SOURCE_VERSION` los proporciona
+CodeBuild. Tras un build verde, el artefacto contiene `imageDetail.json`,
+`taskdef.json` y `appspec.yaml`, para la acción `CodeDeployToECS` de Eduardo.
+`taskdef.json` e `imageDetail.json` se generan durante el build y están
+ignorados por Git. Los nombres de contenedor y puerto son `blacklist` y `5000`.

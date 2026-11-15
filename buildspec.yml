@@ -5,16 +5,20 @@ phases:
     runtime-versions:
       python: 3.11
     commands:
-      - python --version
       - python -m pip install -r requirements.txt -r requirements-dev.txt
   pre_build:
     commands:
-      - echo "Commit $CODEBUILD_RESOLVED_SOURCE_VERSION"
-      - python -c "from version import VERSION; print('API version:', VERSION)"
+      - test -n "$IMAGE_REPOSITORY_URI"
+      - test -n "$CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - export IMAGE_TAG=$(printf '%s' "$CODEBUILD_RESOLVED_SOURCE_VERSION" | cut -c 1-12)
+      - export IMAGE_URI="$IMAGE_REPOSITORY_URI:$IMAGE_TAG"
   build:
     commands:
       - python -m pytest tests -v --junitxml=reports/junit.xml
-      - python scripts/package_artifact.py
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${IMAGE_REPOSITORY_URI%%/*}"
+      - docker build --tag "$IMAGE_URI" .
+      - docker push "$IMAGE_URI"
+      - python scripts/render_ecs_artifacts.py
 
 reports:
   pruebas-unitarias:
@@ -25,5 +29,6 @@ reports:
 
 artifacts:
   files:
-    - blacklist-deploy.zip
-  discard-paths: yes
+    - imageDetail.json
+    - taskdef.json
+    - appspec.yaml
