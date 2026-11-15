@@ -29,7 +29,7 @@ def main():
         "essential": True,
         "portMappings": [{"containerPort": 5000, "hostPort": 5000, "protocol": "tcp"}],
         "environment": [
-            {"name": "TRUSTED_PROXY_COUNT", "value": os.environ.get("TRUSTED_PROXY_COUNT", "3")},
+            {"name": "TRUSTED_PROXY_COUNT", "value": os.environ.get("TRUSTED_PROXY_COUNT", "1")},
         ],
         "secrets": [
             {"name": "DATABASE_URL", "valueFrom": os.environ["DATABASE_URL_SECRET_ARN"]},
