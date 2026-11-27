@@ -39,6 +39,11 @@ ambientes; el JWT funciona en ambos si comparten la misma clave.
 
 ## Ejecución local
 
+**Para la Entrega 4 en Windows con Python 3.11, siga la guía Docker al final de
+este README.** El agente New Relic fijado para el contenedor Linux requiere
+Python 3.13 o superior para una instalación nativa soportada en Windows. Los
+comandos nativos siguientes describen la ejecución histórica del servicio.
+
 Se necesita Python 3.8 o superior (el proyecto se probó con 3.11) y una base
 PostgreSQL accesible. Ejemplo opcional con Docker:
 
@@ -228,3 +233,22 @@ CodeBuild. Tras un build verde, el artefacto contiene `imageDetail.json`,
 `taskdef.json` y `appspec.yaml`, para la acción `CodeDeployToECS` de Eduardo.
 `taskdef.json` e `imageDetail.json` se generan durante el build y están
 ignorados por Git. Los nombres de contenedor y puerto son `blacklist` y `5000`.
+
+## Entrega 4: monitoreo con New Relic
+
+La imagen incluye el agente Python de New Relic. El contenedor inicia Gunicorn
+mediante `newrelic-admin run-program`; la configuración llega por variables de
+entorno. En desarrollo use `NEW_RELIC_APP_NAME=blacklist-dev` y entregue
+`NEW_RELIC_LICENSE_KEY` solo a través de un secreto local. La aplicación también
+necesita `DATABASE_URL` y `JWT_SECRET_KEY`. Para observar consultas a la base,
+ejecute POST y GET autenticados: `/health` no accede a PostgreSQL.
+
+En Fargate, `scripts/render_ecs_artifacts.py` exige
+`NEW_RELIC_LICENSE_KEY_SECRET_ARN` en CodeBuild y lo incorpora a `taskdef.json`
+como referencia al secreto `NEW_RELIC_LICENSE_KEY`. La tarea usa
+`NEW_RELIC_APP_NAME=blacklist-fargate`, trazas distribuidas, reenvío de logs y
+`NEW_RELIC_LOG=stdout`. Juan configura el secreto y el permiso del rol de
+ejecución; Eduardo integra el cambio por CodePipeline/CodeDeploy. El build
+ejecuta pruebas y valida los artefactos antes de publicar la imagen.
+
+

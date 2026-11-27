@@ -15,10 +15,10 @@ phases:
   build:
     commands:
       - python -m pytest tests -v --junitxml=reports/junit.xml
+      - python scripts/render_ecs_artifacts.py
       - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${IMAGE_REPOSITORY_URI%%/*}"
       - docker build --tag "$IMAGE_URI" .
       - docker push "$IMAGE_URI"
-      - python scripts/render_ecs_artifacts.py
 
 reports:
   pruebas-unitarias:
