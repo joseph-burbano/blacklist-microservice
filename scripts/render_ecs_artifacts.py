@@ -12,6 +12,7 @@ REQUIRED = (
     "ECS_TASK_EXECUTION_ROLE_ARN",
     "DATABASE_URL_SECRET_ARN",
     "JWT_SECRET_KEY_SECRET_ARN",
+    "NEW_RELIC_LICENSE_KEY_SECRET_ARN",
     "ECS_LOG_GROUP",
 )
 
@@ -30,10 +31,15 @@ def main():
         "portMappings": [{"containerPort": 5000, "hostPort": 5000, "protocol": "tcp"}],
         "environment": [
             {"name": "TRUSTED_PROXY_COUNT", "value": os.environ.get("TRUSTED_PROXY_COUNT", "1")},
+            {"name": "NEW_RELIC_APP_NAME", "value": "blacklist-fargate"},
+            {"name": "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED", "value": "true"},
+            {"name": "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED", "value": "true"},
+            {"name": "NEW_RELIC_LOG", "value": "stdout"},
         ],
         "secrets": [
             {"name": "DATABASE_URL", "valueFrom": os.environ["DATABASE_URL_SECRET_ARN"]},
             {"name": "JWT_SECRET_KEY", "valueFrom": os.environ["JWT_SECRET_KEY_SECRET_ARN"]},
+            {"name": "NEW_RELIC_LICENSE_KEY", "valueFrom": os.environ["NEW_RELIC_LICENSE_KEY_SECRET_ARN"]},
         ],
         "logConfiguration": {
             "logDriver": "awslogs",

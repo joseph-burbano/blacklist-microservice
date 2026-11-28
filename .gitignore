@@ -222,4 +222,6 @@ __marimo__/
 # CI local outputs
 reports/
 blacklist-deploy.zip
+taskdef.json
+imageDetail.json
 
